@@ -24,7 +24,7 @@ public interface DownloadListener {
      * @param url
      * @param total
      */
-    void onComplete(final String url,final long total);
+    void onComplete(final String url,final long total,final String path);
 
     /**
      * 下载任务取消

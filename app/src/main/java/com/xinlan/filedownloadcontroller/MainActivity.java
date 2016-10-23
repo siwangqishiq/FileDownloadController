@@ -6,58 +6,94 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ProgressBar;
 
 import com.xinlan.filedownloadcontroller.core.DownloadEngine;
+import com.xinlan.filedownloadcontroller.core.DownloadListener;
 import com.xinlan.filedownloadcontroller.core.FileUtil;
 
-public class MainActivity extends AppCompatActivity {
-    /**
-     * //http://fs.mv.web.kugou.com/201610221949/1240dfd4eef5ef5c8a0ed0dea3dbe02a/G082/M02/02/17/MpQEAFgG6BOAGBfcAZMcxF7PKbI784.mp4
-     //http://fs.mv.web.kugou.com/201610221950/86b665de89ff6cdc992e3ab264076323/G074/M04/12/07/KpQEAFf-9O2ASPCfAd3EzuKVeq4779.mp4
-     //http://fs.mv.web.kugou.com/201610221951/f0b116431d8e0fefb52ad62a7744b8c2/G078/M07/0C/07/7oYBAFgFj7iABL-RASGvHyesnJ0599.mp4
-     //http://fs.mv.web.kugou.com/201610221954/971da1d6f28fef9fc53908897e6ed977/G083/M01/17/08/kw0DAFf-9ROAXnDWAhIYD999X4s579.mp4
-     //http://fs.mv.web.kugou.com/201610221954/40b9d77ddf64e352f3f6b45fc2c88fba/G082/M08/13/19/MpQEAFf8WXOAeWJGAcatDkEtxMk953.mp4
-     //http://fs.mv.web.kugou.com/201610221955/3c09d1628867a34800847de4e86312f0/G024/M04/15/04/-JMEAFfseJuANqXCAZ-luaWzPFc848.mp4
-     //http://fs.mv.web.kugou.com/201610221955/f92ed001a882fa0d49f2f8115ae8754b/G067/M08/0F/13/I5QEAFfl8I2AfqvvAMZuEgo5tK8518.mp4
-     //http://fs.mv.web.kugou.com/201610221958/e2af970293f945cdd877b6e4f50f04f9/G083/M01/0C/08/M5QEAFgIJxCAQ32cApd4WR_OcIU808.mp4
-     //http://175.22.5.111/youku/65612A89164877D80859647A/030002010058061C37B5122D9B7D2FDB02F651-C7EB-2E13-044C-178211D3F569.flv
-     * @param savedInstanceState
-     */
+public class MainActivity extends AppCompatActivity implements View.OnClickListener{
+    private Button mBtn;
+    private ProgressBar mProgressBar;
+
+    private ActionDownload mActionDownload = new ActionDownload();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
 
         final String sdPath = Environment.getExternalStorageDirectory().getAbsolutePath();
-        DownloadEngine.getInstance().init(this,sdPath);
-    }
+        DownloadEngine.getInstance().init(this,sdPath+"/panyi_download");
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
+        DownloadEngine.getInstance().setDownloadListener(mActionDownload);
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
+        mBtn = (Button)findViewById(R.id.btn);
+        mProgressBar = (ProgressBar)findViewById(R.id.progress_bar);
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_start_download) {
-            startDownload();
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
+        mBtn.setOnClickListener(this);
     }
 
     private void startDownload(){
-        DownloadEngine.getInstance().startDownloadTask("http://fs.mv.web.kugou.com/201610221935/8d7d674851ab398481ad36dc06113439/G055/M05/05/10/dw0DAFah0UiAJXcHAqnSlVWqvNg118.mp4");
+        DownloadEngine.getInstance().startDownloadTask(Constants.urls[3],"4.mp4");
     }
+
+    @Override
+    public void onClick(View view) {
+        startDownload();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        DownloadEngine.getInstance().setDownloadListener(null);
+    }
+
+    /**
+     * 文件下载监听
+     */
+    private final class ActionDownload implements DownloadListener{
+
+        @Override
+        public void onPreStart(String url, long totalSize) {
+            //mProgressBar.setMax((int)totalSize);
+        }
+
+        @Override
+        public void onUpdateProgress(final String url,final long currentProgress,final long totalSize) {
+            int progress =  (int)((currentProgress / (double)totalSize)*100);
+
+            System.out.println(currentProgress+"   "+totalSize +"   "+progress);
+            mBtn.setText(progress+"%");
+            mProgressBar.setProgress(progress);
+        }
+
+        @Override
+        public void onComplete(String url, long total, String path) {
+            mBtn.setText("下载完成");
+        }
+
+        @Override
+        public void onCancel(String url, long currentProgress, long total) {
+
+        }
+
+        @Override
+        public void onError(String url, long currentProgress, long total, String e) {
+
+        }
+
+        @Override
+        public void onPause(String url, long currentProgress, long total) {
+
+        }
+
+        @Override
+        public void onResume(String url, long currentProgress, long total) {
+
+        }
+    }//end inner class
 
 }//end class

@@ -1,5 +1,7 @@
 package com.xinlan.filedownloadcontroller.core;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 /**
  * Created by panyi on 2016/10/20.
  */
@@ -15,15 +17,18 @@ public class TaskBean {
     private long total;
     private long current;
     private int status;
-    private boolean isPause = false;
+    protected AtomicBoolean isPause = new AtomicBoolean(false);
 
     private String extra;
 
     private String path;//下载路径
 
-    public static TaskBean createTask(final String url){
+    private String fileName;
+
+    public static TaskBean createTask(final String url,final String downloadFileName){
         TaskBean bean = new TaskBean();
         bean.setFileUrl(url);
+        bean.setFileName(downloadFileName);
         bean.setTotal(-1);
         bean.setCurrent(0);
         bean.setStatus(STATUS_READY);
@@ -62,13 +67,6 @@ public class TaskBean {
         this.status = status;
     }
 
-    public boolean isPause() {
-        return isPause;
-    }
-
-    public void setPause(boolean pause) {
-        isPause = pause;
-    }
 
     public String getExtra() {
         return extra;
@@ -85,4 +83,13 @@ public class TaskBean {
     public void setPath(String path) {
         this.path = path;
     }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
 }//end class

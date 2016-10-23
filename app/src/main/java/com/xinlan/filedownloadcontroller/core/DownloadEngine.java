@@ -54,8 +54,7 @@ public class DownloadEngine {
     private DownloadListener mDownloadListener;
 
     private DownloadEngine() {
-        mUIHandler = new Handler(Looper.getMainLooper());
-
+        mUIHandler = new Handler(Looper.myLooper());
         checkAndEnsureThreadPool();
     }
 
@@ -70,6 +69,8 @@ public class DownloadEngine {
      * @param saveDirectory
      */
     public void init(Context context, final String saveDirectory) {
+
+
         this.context = context;
         this.directory = saveDirectory;
 
@@ -77,15 +78,24 @@ public class DownloadEngine {
     }
 
     /**
+     * 获取任务
+     * @param url
+     * @return
+     */
+    public TaskBean getTaskBean(final String url){
+        return mTasks.get(url);
+    }
+
+    /**
      * 添加下载任务
      *
      * @param fileUrl
      */
-    public void startDownloadTask(final String fileUrl) {
+    public void startDownloadTask(final String fileUrl,String filename) {
         TaskBean taskBean = mTasks.get(fileUrl);
 
         if (taskBean == null) {//任务不存在
-            taskBean = TaskBean.createTask(fileUrl);
+            taskBean = TaskBean.createTask(fileUrl,filename);
             mTasks.put(fileUrl, taskBean);
             startDownloadTask(taskBean);
         } else {
@@ -93,9 +103,15 @@ public class DownloadEngine {
         }//end
     }
 
-    private boolean startDownloadTask(final TaskBean bean) {
+    protected boolean startDownloadTask(final TaskBean bean) {
         threadPool.submit(new DownloadTask(bean));
         return true;
+    }
+
+
+
+    public void setDownloadListener(DownloadListener mDownloadListener) {
+        this.mDownloadListener = mDownloadListener;
     }
 
     public void destory() {
@@ -132,7 +148,8 @@ public class DownloadEngine {
                 setRequestParamsConstants(conn);
 
                 if(TextUtils.isEmpty(taskBean.getPath())){
-                    String downloadFilePath = directory + File.separatorChar + FileUtil.findFileName(taskBean.getFileUrl());
+                    String downloadFilePath = directory + File.separatorChar + FileUtil.findFileName(taskBean.getFileUrl(),
+                            taskBean.getFileName());
                     taskBean.setPath(downloadFilePath);
                 }
 
@@ -178,18 +195,39 @@ public class DownloadEngine {
                     int readSize;
 
                     //下载文件
-                    while ((readSize = inStream.read(buffer, 0, BUFFER_SIZE)) != -1) {
+                    while (!taskBean.isPause.get()
+                            && (readSize = inStream.read(buffer, 0, BUFFER_SIZE)) != -1) {
                         // 写入文件
                         downloadfile.write(buffer, 0, readSize);
                         offset += readSize; // 累加下载的大小
                         taskBean.setCurrent(offset);
 
-                        System.out.println("下载进度 : "+taskBean.getCurrent()+" / "+taskBean.getTotal());
+                        //update callback
+                        mUIHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (mDownloadListener != null) {
+                                    mDownloadListener.onUpdateProgress(taskBean.getFileUrl(),
+                                            taskBean.getCurrent(),taskBean.getTotal());
+                                }
+                            }
+                        });
+
+                        //System.out.println("下载进度 : "+taskBean.getCurrent()+" / "+taskBean.getTotal());
                     }//end while
 
                     if(offset == taskBean.getTotal()){//下载成功
                         taskBean.setStatus(TaskBean.STATUS_COMPLETE);
                         mTasks.remove(taskBean.getFileUrl());
+
+                        mUIHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (mDownloadListener != null) {
+                                    mDownloadListener.onComplete(taskBean.getFileUrl(),taskBean.getTotal(),taskBean.getPath());
+                                }
+                            }
+                        });
                     }
                 } else {
                     setTaskErrorInfo(TaskBean.STATUS_ERROR, "server no response");
