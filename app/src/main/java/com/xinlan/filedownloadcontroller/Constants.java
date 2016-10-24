@@ -5,8 +5,8 @@ package com.xinlan.filedownloadcontroller;
  */
 public class Constants {
     public static String[] urls = new String[]{
-            "http://fs.mv.web.kugou.com/201610221935/8d7d674851ab398481ad36dc06113439/G055/M05/05/10/dw0DAFah0UiAJXcHAqnSlVWqvNg118.mp4",
-            "http://fs.mv.web.kugou.com/201610221949/1240dfd4eef5ef5c8a0ed0dea3dbe02a/G082/M02/02/17/MpQEAFgG6BOAGBfcAZMcxF7PKbI784.mp4",
+            "http://fs.mv.web.kugou.com/201610242234/58de0084d496d7b4636bd4b4daed62bc/G039/M01/16/01/Zw0DAFY3QdSAK1Y6AldT4L8brPw118.mp4",
+            "http://fs.mv.web.kugou.com/201610242243/4263ebbf98e35d5e8c2b6fa476a04e3f/G082/M02/02/17/MpQEAFgG6BOAGBfcAZMcxF7PKbI784.mp4",
             "http://fs.mv.web.kugou.com/201610221950/86b665de89ff6cdc992e3ab264076323/G074/M04/12/07/KpQEAFf-9O2ASPCfAd3EzuKVeq4779.mp4",
             "http://fs.mv.web.kugou.com/201610221951/f0b116431d8e0fefb52ad62a7744b8c2/G078/M07/0C/07/7oYBAFgFj7iABL-RASGvHyesnJ0599.mp4",
             "http://fs.mv.web.kugou.com/201610221954/971da1d6f28fef9fc53908897e6ed977/G083/M01/17/08/kw0DAFf-9ROAXnDWAhIYD999X4s579.mp4",

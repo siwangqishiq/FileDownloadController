@@ -13,6 +13,7 @@ import android.widget.ProgressBar;
 import com.xinlan.filedownloadcontroller.core.DownloadEngine;
 import com.xinlan.filedownloadcontroller.core.DownloadListener;
 import com.xinlan.filedownloadcontroller.core.FileUtil;
+import com.xinlan.filedownloadcontroller.core.TaskBean;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
     private Button mBtn;
@@ -37,7 +38,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void startDownload(){
-        DownloadEngine.getInstance().startDownloadTask(Constants.urls[3],"4.mp4");
+        final String url = Constants.urls[1];
+        int status = DownloadEngine.getInstance().queryTaskStatus(url);
+        if(status == TaskBean.STATUS_PAUSE || status == TaskBean.STATUS_READY){//继续
+            DownloadEngine.getInstance().startDownloadTask(url,"4.mp4");
+        }else{//暂停任务
+            DownloadEngine.getInstance().pauseTask(url);
+        }
+
     }
 
     @Override
@@ -65,7 +73,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void onUpdateProgress(final String url,final long currentProgress,final long totalSize) {
             int progress =  (int)((currentProgress / (double)totalSize)*100);
 
-            System.out.println(currentProgress+"   "+totalSize +"   "+progress);
+            //System.out.println(currentProgress+"   "+totalSize +"   "+progress);
             mBtn.setText(progress+"%");
             mProgressBar.setProgress(progress);
         }
@@ -87,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         @Override
         public void onPause(String url, long currentProgress, long total) {
-
+            mBtn.setText("继续");
         }
 
         @Override

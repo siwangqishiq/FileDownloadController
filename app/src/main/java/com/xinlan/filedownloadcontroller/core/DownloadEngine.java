@@ -79,11 +79,17 @@ public class DownloadEngine {
 
     /**
      * 获取任务
+     *
      * @param url
      * @return
      */
-    public TaskBean getTaskBean(final String url){
+    public TaskBean getTaskBean(final String url) {
         return mTasks.get(url);
+    }
+
+    public int queryTaskStatus(final String url) {
+        TaskBean bean = getTaskBean(url);
+        return bean == null ? TaskBean.STATUS_READY : bean.getStatus();
     }
 
     /**
@@ -91,23 +97,31 @@ public class DownloadEngine {
      *
      * @param fileUrl
      */
-    public void startDownloadTask(final String fileUrl,String filename) {
+    public void startDownloadTask(final String fileUrl, String filename) {
         TaskBean taskBean = mTasks.get(fileUrl);
 
         if (taskBean == null) {//任务不存在
-            taskBean = TaskBean.createTask(fileUrl,filename);
+            taskBean = TaskBean.createTask(fileUrl, filename);
             mTasks.put(fileUrl, taskBean);
             startDownloadTask(taskBean);
         } else {
-
+            if (taskBean.getStatus() == TaskBean.STATUS_PAUSE) {
+                startDownloadTask(taskBean);
+            }
         }//end
+    }
+
+    public void pauseTask(final String fileUrl) {
+        TaskBean taskBean = mTasks.get(fileUrl);
+        if (taskBean != null) {
+             taskBean.isPause.set(true);
+        }
     }
 
     protected boolean startDownloadTask(final TaskBean bean) {
         threadPool.submit(new DownloadTask(bean));
         return true;
     }
-
 
 
     public void setDownloadListener(DownloadListener mDownloadListener) {
@@ -147,7 +161,7 @@ public class DownloadEngine {
 
                 setRequestParamsConstants(conn);
 
-                if(TextUtils.isEmpty(taskBean.getPath())){
+                if (TextUtils.isEmpty(taskBean.getPath())) {
                     String downloadFilePath = directory + File.separatorChar + FileUtil.findFileName(taskBean.getFileUrl(),
                             taskBean.getFileName());
                     taskBean.setPath(downloadFilePath);
@@ -167,7 +181,7 @@ public class DownloadEngine {
 
                 conn.connect(); // 连接
 
-
+                //System.out.println("code  =  "+conn.getResponseCode());
                 if (conn.getResponseCode() / 100 == 2) { // 响应成功
                     long fileSize = conn.getContentLength();
                     if (fileSize <= 0) {
@@ -175,9 +189,22 @@ public class DownloadEngine {
                         return;
                     }
 
-                    taskBean.setCurrent(0);
+                    //taskBean.setCurrent(0);
                     taskBean.setTotal(fileSize);
+                    if (taskBean.getStatus() == TaskBean.STATUS_PAUSE) {//从暂停中继续
+                        mUIHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (mDownloadListener != null) {
+                                    mDownloadListener.onResume(taskBean.getFileUrl(),
+                                            taskBean.getCurrent(), taskBean.getTotal());
+                                }
+                            }
+                        });
+                    }
                     taskBean.setStatus(TaskBean.STATUS_START);
+
+                    taskBean.isPause.set(false);
 
                     mUIHandler.post(new Runnable() {
                         @Override
@@ -195,8 +222,7 @@ public class DownloadEngine {
                     int readSize;
 
                     //下载文件
-                    while (!taskBean.isPause.get()
-                            && (readSize = inStream.read(buffer, 0, BUFFER_SIZE)) != -1) {
+                    while ((readSize = inStream.read(buffer, 0, BUFFER_SIZE)) != -1) {
                         // 写入文件
                         downloadfile.write(buffer, 0, readSize);
                         offset += readSize; // 累加下载的大小
@@ -208,15 +234,32 @@ public class DownloadEngine {
                             public void run() {
                                 if (mDownloadListener != null) {
                                     mDownloadListener.onUpdateProgress(taskBean.getFileUrl(),
-                                            taskBean.getCurrent(),taskBean.getTotal());
+                                            taskBean.getCurrent(), taskBean.getTotal());
                                 }
                             }
                         });
 
+                        //是否暂停
+                        if (taskBean.isPause.get()) {
+                            taskBean.setCurrent(offset);
+                            taskBean.setStatus(TaskBean.STATUS_PAUSE);
+                            //update callback
+                            mUIHandler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (mDownloadListener != null) {
+                                        mDownloadListener.onPause(taskBean.getFileUrl(),
+                                                taskBean.getCurrent(), taskBean.getTotal());
+                                    }
+                                }
+                            });
+                            break;
+                        }
+
                         //System.out.println("下载进度 : "+taskBean.getCurrent()+" / "+taskBean.getTotal());
                     }//end while
 
-                    if(offset == taskBean.getTotal()){//下载成功
+                    if (offset == taskBean.getTotal()) {//下载成功
                         taskBean.setStatus(TaskBean.STATUS_COMPLETE);
                         mTasks.remove(taskBean.getFileUrl());
 
@@ -224,7 +267,7 @@ public class DownloadEngine {
                             @Override
                             public void run() {
                                 if (mDownloadListener != null) {
-                                    mDownloadListener.onComplete(taskBean.getFileUrl(),taskBean.getTotal(),taskBean.getPath());
+                                    mDownloadListener.onComplete(taskBean.getFileUrl(), taskBean.getTotal(), taskBean.getPath());
                                 }
                             }
                         });
@@ -282,7 +325,7 @@ public class DownloadEngine {
             taskBean.setExtra(msg);
             //mTasks.remove(taskBean.getFileUrl());
 
-            System.out.println("error ="+msg);
+            System.out.println("error =" + msg);
 
             mUIHandler.post(new Runnable() {
                 @Override
